@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+openai
+requests
+PyJWT
+cryptography
+alembic
+psycopg2-binary

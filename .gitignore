@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.log
+.env
+.env.*
+.venv/
+.next/
+node_modules/
+agentguard.db
+*.db
+*.sqlite
+*.sqlite3
+.gstack/
+credentials.json
+token.json
+client_secret*.json
+
+# clerk configuration (can include secrets)
+/.clerk/
