@@ -14,6 +14,7 @@ class Settings:
     GMAIL_CONNECTOR_MODE = os.getenv("GMAIL_CONNECTOR_MODE", "mock")
     WORKSPACE_EMAIL_DOMAIN = os.getenv("WORKSPACE_EMAIL_DOMAIN", "")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 
 settings = Settings()

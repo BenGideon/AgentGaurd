@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app_backend.core.security import APPROVER_ROLES
 from app_backend.models.models import Action, Approval, ToolCall
 from app_backend.services.action_executor import ensure_tool_result_success, execute_action, execute_tool
+from app_backend.services.alert_service import trigger_alert
 from app_backend.services.audit_service import create_audit_log
 from app_backend.utils.redaction import redact_sensitive_data
 from app_backend.utils.schema import validate_input_against_schema
@@ -168,6 +169,19 @@ def approve_approval(
         )
 
         db.commit()
+        trigger_alert(
+            "approved",
+            {
+                "agent_id": tool_call.agent_id,
+                "action": action.name,
+                "approval_id": approval.id,
+                "risk_level": approval.risk_level,
+                "input": final_input,
+                "result": tool_result,
+                "approved_by_user_id": current["user"].id,
+            },
+            workspace_id,
+        )
         return {
             "status": "completed",
             "approval_type": "action",
@@ -198,6 +212,19 @@ def approve_approval(
     )
 
     db.commit()
+    trigger_alert(
+        "approved",
+        {
+            "agent_id": tool_call.agent_id,
+            "action": tool_call.tool,
+            "approval_id": approval.id,
+            "risk_level": approval.risk_level,
+            "input": final_input,
+            "result": tool_result,
+            "approved_by_user_id": current["user"].id,
+        },
+        workspace_id,
+    )
     return {
         "status": "completed",
         "tool_call_id": tool_call.id,

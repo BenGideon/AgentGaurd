@@ -1,0 +1,26 @@
+{
+  "name": "@agentguard/sdk",
+  "version": "0.1.0",
+  "description": "JavaScript SDK for AgentGuard",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "agentguard",
+    "ai",
+    "agents",
+    "policy",
+    "approval"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

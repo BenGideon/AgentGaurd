@@ -7,6 +7,7 @@ from app_backend.models.models import Action, Agent, Approval, ToolCall
 from app_backend.schemas.actions import ActionCreate
 from app_backend.services.action_executor import ensure_tool_result_success, execute_action
 from app_backend.services.api_proxy import validate_action_secret_access
+from app_backend.services.alert_service import trigger_alert
 from app_backend.services.audit_service import create_audit_log
 from app_backend.services.policy_engine import evaluate_policy
 from app_backend.services.risk_engine import calculate_risk
@@ -14,6 +15,38 @@ from app_backend.services.workspace_service import ensure_workspace
 
 
 VALID_EXECUTOR_TYPES = ["gmail_draft", "mock", "webhook", "api_proxy"]
+
+
+def _action_alert_payload(
+    agent: Agent,
+    action: Action,
+    input_data: dict[str, Any],
+    risk_level: str,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "agent_id": agent.id,
+        "action": action.name,
+        "risk_level": risk_level,
+        "input": input_data,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _trigger_critical_risk_if_needed(
+    agent: Agent,
+    action: Action,
+    input_data: dict[str, Any],
+    risk_level: str,
+) -> None:
+    if risk_level == "critical":
+        trigger_alert(
+            "critical_risk",
+            _action_alert_payload(agent, action, input_data, risk_level),
+            agent.workspace_id,
+        )
 
 
 def action_to_dict(action: Action) -> dict[str, Any]:
@@ -115,6 +148,12 @@ def process_action_call(
             policy_effect=effect,
         )
         db.commit()
+        trigger_alert(
+            "blocked",
+            _action_alert_payload(agent, action, input_data, risk_level, {"message": secret_violation["message"]}),
+            agent.workspace_id,
+        )
+        _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
         return {
             "status": "blocked",
             "message": secret_violation["message"],
@@ -134,6 +173,12 @@ def process_action_call(
             policy_effect=effect,
         )
         db.commit()
+        trigger_alert(
+            "blocked",
+            _action_alert_payload(agent, action, input_data, risk_level),
+            agent.workspace_id,
+        )
+        _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
         return {
             "status": "blocked",
             "action_call_id": tool_call.id,
@@ -166,6 +211,18 @@ def process_action_call(
         )
         db.commit()
         db.refresh(approval)
+        trigger_alert(
+            "approval_required",
+            _action_alert_payload(
+                agent,
+                action,
+                input_data,
+                risk_level,
+                {"approval_id": approval.id, "action_call_id": tool_call.id},
+            ),
+            agent.workspace_id,
+        )
+        _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
         return {
             "status": "pending_approval",
             "action_call_id": tool_call.id,
@@ -194,6 +251,12 @@ def process_action_call(
                 policy_effect=effect,
             )
             db.commit()
+            trigger_alert(
+                "blocked",
+                _action_alert_payload(agent, action, input_data, risk_level, {"message": result.get("message")}),
+                agent.workspace_id,
+            )
+            _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
             return {
                 "status": "blocked",
                 "message": result.get("message"),
@@ -213,6 +276,7 @@ def process_action_call(
             policy_effect=effect,
         )
         db.commit()
+        _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
         return {
             "status": "completed",
             "action_call_id": tool_call.id,
@@ -231,6 +295,12 @@ def process_action_call(
         policy_effect=effect,
     )
     db.commit()
+    trigger_alert(
+        "blocked",
+        _action_alert_payload(agent, action, input_data, risk_level),
+        agent.workspace_id,
+    )
+    _trigger_critical_risk_if_needed(agent, action, input_data, risk_level)
     return {
         "status": "blocked",
         "action_call_id": tool_call.id,

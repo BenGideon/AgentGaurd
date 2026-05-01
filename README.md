@@ -1,28 +1,105 @@
 # AgentGuard
 
-Minimal FastAPI backend plus a Next.js dashboard for tool permissions, approvals, and audit logs.
+AgentGuard is a control layer for AI agents. It simulates, approves, and audits
+every action before it reaches your systems.
 
-## Backend
+Open the local demo:
 
-Install Python dependencies if needed:
-
-```bash
-pip install fastapi uvicorn sqlalchemy
+```text
+http://localhost:3000/demo
 ```
 
-Run the API:
+![AgentGuard demo screenshot](docs/demo-screenshot.svg)
+
+## Architecture
+
+```text
+Agent -> AgentGuard -> APIs (Gmail, webhooks, internal systems)
+           |
+           v
+     Policies / Approvals / Logs
+```
+
+## Quickstart
+
+```bash
+git clone https://github.com/BenGideon/AgentGaurd
+cd AgentGuard
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+npm install
+```
+
+Initialize the local demo database:
+
+```bash
+python setup_demo.py
+```
+
+Start the backend:
 
 ```bash
 uvicorn app_backend.main:app --reload
 ```
 
-Compatibility entrypoint:
+In a second terminal, start the dashboard:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000/demo
+```
+
+The demo works without OpenAI or Gmail credentials. By default it uses fallback
+AI copy and mock Gmail draft creation.
+
+Compatibility backend entrypoint:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The backend runs at `http://localhost:8000`.
+Backend docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Tests
+
+Run backend and frontend checks:
+
+```bash
+pip install -r requirements.txt
+pytest
+npm run build
+cd sdk/js
+npm run build
+```
+
+The pytest suite uses a temporary SQLite database and runs Alembic migrations
+against that database. It does not touch local `agentguard.db`.
+
+Fresh SQLite migration check:
+
+```bash
+$env:DATABASE_URL="sqlite:///./agentguard_migration_check.db"
+alembic upgrade head
+```
+
+Manual QA checklist:
+
+```text
+docs/QA_CHECKLIST.md
+```
 
 ### Local SQLite migrations
 
@@ -761,6 +838,155 @@ Policy matches are returned in action responses and audit logs:
   }
 }
 ```
+
+## Policy Simulator
+
+The policy simulator lets admins test what AgentGuard would decide before an
+agent actually runs an action. It evaluates the same risk and policy engines
+used by `/actions/call`, but it does not execute the action, create approvals,
+or write audit logs.
+
+Use it from the dashboard at:
+
+```text
+/simulator
+```
+
+Or call the API directly:
+
+```http
+POST /simulate
+x-workspace-id: default
+Authorization: Bearer <Clerk JWT>
+Content-Type: application/json
+```
+
+```json
+{
+  "agent_id": "sales_agent",
+  "action": "sales.create_gmail_draft",
+  "input": {
+    "to": "customer@gmail.com",
+    "subject": "Follow up",
+    "body": "Hi"
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "decision": "approval_required",
+  "risk_level": "medium",
+  "matched_policy": {
+    "policy_id": 12,
+    "effect": "approval_required",
+    "conditions": {
+      "recipient_external": true
+    },
+    "priority": 10
+  },
+  "reason": "recipient_external = true"
+}
+```
+
+This is useful for debugging policies, building trust with reviewers, and
+demoing why an action would be allowed, blocked, or sent for approval.
+
+## Alerts
+
+AgentGuard can notify external systems when important agent events happen.
+Configure webhook alerts from the dashboard at:
+
+```text
+/alerts
+```
+
+Or create one through the API:
+
+```http
+POST /alerts
+x-workspace-id: default
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Security webhook",
+  "url": "https://webhook.site/your-url",
+  "events": ["blocked", "approval_required", "critical_risk", "approved"]
+}
+```
+
+Supported events:
+
+- `blocked`: an action was blocked by policy or safe execution checks
+- `approval_required`: an approval was created
+- `critical_risk`: a critical-risk action was attempted
+- `approved`: an approval was completed
+
+Webhook payloads look like:
+
+```json
+{
+  "event": "blocked",
+  "workspace_id": "default",
+  "agent_id": "sales_agent",
+  "action": "sales.create_gmail_draft",
+  "risk_level": "medium",
+  "input": {
+    "to": "customer@gmail.com",
+    "subject": "Follow up"
+  },
+  "timestamp": "2026-04-29T12:00:00Z"
+}
+```
+
+Payloads are redacted with the same sensitive-data helper used by audit logs.
+Delivery is best effort: no retries, no rate limits, and webhook failures do not
+block the agent request. Slack webhooks work by pasting the Slack webhook URL as
+the alert URL.
+
+## Demo: AI Sales Email Agent
+
+AgentGuard includes a complete end-to-end demo that shows the product story in
+one flow:
+
+```text
+AI -> policy simulation -> approval -> edit -> Gmail draft -> alert -> logs
+```
+
+Open:
+
+```text
+http://localhost:3000/demo
+```
+
+The backend seeds the default workspace with:
+
+- Agent: `sales_agent`
+- Action: `sales.create_gmail_draft`
+- Policy: external recipients require approval
+- Policy: lower-priority default allow rule
+
+Demo steps:
+
+1. Enter a customer email and sales context.
+2. Generate an email draft.
+3. Simulate the policy decision before executing anything.
+4. Send the action to AgentGuard.
+5. Review and edit the pending approval.
+6. Approve to create a Gmail draft.
+7. Confirm alerts and audit logs.
+
+If `OPENAI_API_KEY` is set, `/demo/generate-email` uses OpenAI to generate the
+draft. Without it, AgentGuard uses a deterministic local fallback so the demo
+still works offline.
+
+By default, `GMAIL_CONNECTOR_MODE=mock`, so approval creates a mock Gmail draft.
+Set `GMAIL_CONNECTOR_MODE=live` and connect Gmail from `/connectors` to create a
+real Gmail draft. AgentGuard never sends emails.
 
 ## Gmail Connector (Production OAuth)
 

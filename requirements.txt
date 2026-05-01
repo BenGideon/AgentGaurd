@@ -10,3 +10,5 @@ PyJWT
 cryptography
 alembic
 psycopg2-binary
+pytest
+httpx

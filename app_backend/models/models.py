@@ -116,6 +116,17 @@ class Connector(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class AlertConfig(Base):
+    __tablename__ = "alerts_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), default="default", nullable=False)
+    name = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    events = Column(JSON, default=list, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class Policy(Base):
     __tablename__ = "policies"
 

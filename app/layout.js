@@ -8,14 +8,22 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const content = (
+    <html lang="en">
+      <body className="min-h-screen">
+        <AppHeader />
+        <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+      </body>
+    </html>
+  );
+
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return content;
+  }
+
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-screen">
-          <AppHeader />
-          <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
-        </body>
-      </html>
+      {content}
     </ClerkProvider>
   );
 }

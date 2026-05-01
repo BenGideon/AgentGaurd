@@ -17,15 +17,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("action_policies", sa.Column("priority", sa.Integer(), nullable=False, server_default="0"))
-    op.add_column(
-        "action_policies",
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
-    )
+    bind = op.get_bind()
+    existing_action_policy_columns = {
+        column["name"] for column in sa.inspect(bind).get_columns("action_policies")
+    }
+    existing_audit_log_columns = {
+        column["name"] for column in sa.inspect(bind).get_columns("audit_logs")
+    }
 
-    op.add_column("audit_logs", sa.Column("policy_match", sa.JSON(), nullable=True))
-    op.add_column("audit_logs", sa.Column("policy_effect", sa.String(), nullable=True))
-    op.add_column("audit_logs", sa.Column("matched_policy_id", sa.Integer(), nullable=True))
+    if "priority" not in existing_action_policy_columns:
+        op.add_column("action_policies", sa.Column("priority", sa.Integer(), nullable=False, server_default="0"))
+
+    if "created_at" not in existing_action_policy_columns:
+        if bind.dialect.name == "sqlite":
+            op.add_column("action_policies", sa.Column("created_at", sa.DateTime(), nullable=True))
+            op.execute("UPDATE action_policies SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+        else:
+            op.add_column(
+                "action_policies",
+                sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
+            )
+
+    if "policy_match" not in existing_audit_log_columns:
+        op.add_column("audit_logs", sa.Column("policy_match", sa.JSON(), nullable=True))
+    if "policy_effect" not in existing_audit_log_columns:
+        op.add_column("audit_logs", sa.Column("policy_effect", sa.String(), nullable=True))
+    if "matched_policy_id" not in existing_audit_log_columns:
+        op.add_column("audit_logs", sa.Column("matched_policy_id", sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:

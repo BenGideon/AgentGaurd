@@ -1,0 +1,33 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#f4f4f5"/>
+  <rect x="80" y="56" width="1040" height="608" rx="10" fill="white" stroke="#d4d4d8"/>
+  <text x="120" y="116" fill="#09090b" font-family="Arial, sans-serif" font-size="30" font-weight="700">Demo: AI Sales Email Agent</text>
+  <text x="120" y="150" fill="#52525b" font-family="Arial, sans-serif" font-size="16">AI proposes an email, AgentGuard simulates policy, asks for approval, creates a draft, sends alerts, and records logs.</text>
+  <g transform="translate(120 190)">
+    <rect width="180" height="58" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="22" y="36" fill="#065f46" font-family="Arial, sans-serif" font-size="15" font-weight="700">1. Generate</text>
+    <rect x="196" width="180" height="58" rx="8" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="218" y="36" fill="#065f46" font-family="Arial, sans-serif" font-size="15" font-weight="700">2. Simulate</text>
+    <rect x="392" width="180" height="58" rx="8" fill="#18181b" stroke="#18181b"/>
+    <text x="414" y="36" fill="white" font-family="Arial, sans-serif" font-size="15" font-weight="700">3. Review</text>
+    <rect x="588" width="180" height="58" rx="8" fill="white" stroke="#d4d4d8"/>
+    <text x="610" y="36" fill="#52525b" font-family="Arial, sans-serif" font-size="15" font-weight="700">4. Approve</text>
+    <rect x="784" width="180" height="58" rx="8" fill="white" stroke="#d4d4d8"/>
+    <text x="806" y="36" fill="#52525b" font-family="Arial, sans-serif" font-size="15" font-weight="700">5. Done</text>
+  </g>
+  <rect x="120" y="284" width="470" height="300" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+  <text x="150" y="326" fill="#09090b" font-family="Arial, sans-serif" font-size="20" font-weight="700">Editable email preview</text>
+  <rect x="150" y="352" width="390" height="38" rx="6" fill="white" stroke="#d4d4d8"/>
+  <text x="166" y="377" fill="#3f3f46" font-family="Arial, sans-serif" font-size="14">customer@gmail.com</text>
+  <rect x="150" y="410" width="390" height="38" rx="6" fill="white" stroke="#d4d4d8"/>
+  <text x="166" y="435" fill="#3f3f46" font-family="Arial, sans-serif" font-size="14">Following up on our pricing call</text>
+  <rect x="150" y="468" width="390" height="76" rx="6" fill="white" stroke="#d4d4d8"/>
+  <text x="166" y="494" fill="#3f3f46" font-family="Arial, sans-serif" font-size="14">Hi, thanks for discussing pricing...</text>
+  <rect x="630" y="284" width="370" height="300" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+  <text x="660" y="326" fill="#09090b" font-family="Arial, sans-serif" font-size="20" font-weight="700">Policy simulation</text>
+  <text x="660" y="368" fill="#3f3f46" font-family="Arial, sans-serif" font-size="16">Decision: approval_required</text>
+  <text x="660" y="402" fill="#3f3f46" font-family="Arial, sans-serif" font-size="16">Risk: medium</text>
+  <text x="660" y="436" fill="#3f3f46" font-family="Arial, sans-serif" font-size="16">Reason: recipient_external = true</text>
+  <rect x="660" y="482" width="180" height="44" rx="7" fill="#18181b"/>
+  <text x="686" y="510" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="700">Send to AgentGuard</text>
+</svg>

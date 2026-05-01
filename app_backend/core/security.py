@@ -51,6 +51,15 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if not authorization or not authorization.lower().startswith("bearer "):
+        if not settings.CLERK_JWKS_URL:
+            user = db.get(User, "demo_user")
+            if user:
+                return user
+            user = User(id="demo_user", email="demo@agentguard.local")
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            return user
         raise HTTPException(status_code=401, detail="Missing Authorization bearer token")
 
     token = authorization.split(" ", 1)[1].strip()
@@ -93,7 +102,7 @@ def get_current_workspace_user(
         .first()
     )
 
-    if not membership and workspace_id == "default":
+    if not membership and (workspace_id == "default" or not settings.CLERK_JWKS_URL):
         existing_membership_count = (
             db.query(WorkspaceMembership)
             .filter(WorkspaceMembership.workspace_id == workspace_id)
