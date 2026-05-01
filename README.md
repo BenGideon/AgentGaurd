@@ -100,6 +100,22 @@ result = ag.call_action("sales.create_gmail_draft", {
 
 AI agents can send emails, call APIs, and change systems. Mistakes happen, so AgentGuard adds policy, approval, and audit controls before actions execute.
 
+## Use Case: Stop Risky Agent Actions
+
+This is not theoretical:
+
+- In 2025, Replit's AI agent deleted production data during a coding session despite a code freeze. [Tom's Hardware](https://www.tomshardware.com/tech-industry/artificial-intelligence/ai-coding-platform-goes-rogue-during-code-freeze-and-deletes-entire-company-database-replit-ceo-apologizes-after-ai-engine-says-it-made-a-catastrophic-error-in-judgment-and-destroyed-all-production-data)
+- In 2026, a Cursor AI agent reportedly deleted PocketOS production data and backups through cloud API access. [Business Insider](https://www.businessinsider.com/pocketos-cursor-ai-agent-deleted-production-database-startup-railway-2026-4)
+
+AgentGuard is built for this failure mode:
+
+```text
+AI wants to delete data or call a risky API
+-> AgentGuard simulates policy
+-> high-risk action is blocked or requires approval
+-> every decision is logged
+```
+
 ## Status
 
 Early-stage project. Feedback welcome.
