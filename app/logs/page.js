@@ -26,9 +26,69 @@ function ResultSummary({ result }) {
   );
 }
 
+function EmailSummary({ input }) {
+  if (!input) {
+    return <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm text-zinc-500">No payload recorded.</div>;
+  }
+
+  if (input.to || input.subject || input.body) {
+    return (
+      <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm text-zinc-800">
+        {input.to ? <div><span className="font-medium text-zinc-950">To:</span> {input.to}</div> : null}
+        {input.subject ? <div className="mt-1"><span className="font-medium text-zinc-950">Subject:</span> {input.subject}</div> : null}
+        {input.body ? <p className="mt-3 whitespace-pre-wrap text-zinc-700">{input.body}</p> : null}
+      </div>
+    );
+  }
+
+  return <JsonBlock value={input} />;
+}
+
+function PolicySummary({ log }) {
+  if (!log.policy_effect && !log.policy_match && !log.matched_policy_id) {
+    return <span className="text-xs text-zinc-400">-</span>;
+  }
+
+  const conditions = log.policy_match?.conditions || {};
+  const conditionText = Object.entries(conditions)
+    .map(([key, value]) => `${key}: ${String(value)}`)
+    .join(", ");
+
+  return (
+    <div className="grid gap-1 text-xs text-zinc-700">
+      {log.policy_effect ? <span className="font-medium text-zinc-900">Decision: {log.policy_effect}</span> : null}
+      {log.matched_policy_id ? <span>Policy #{log.matched_policy_id}</span> : null}
+      {conditionText ? <span>{conditionText}</span> : null}
+    </div>
+  );
+}
+
+function ResultDetails({ result }) {
+  if (!result) {
+    return <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm text-zinc-500">No execution result recorded.</div>;
+  }
+
+  const draft = result.draft;
+  return (
+    <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm text-zinc-800">
+      <div className="font-medium text-zinc-950">{result.message || result.status || "Execution result"}</div>
+      {result.draft_id ? <div className="mt-1">Draft ID: <span className="font-mono">{result.draft_id}</span></div> : null}
+      {draft ? (
+        <div className="mt-3 border-t border-zinc-100 pt-3">
+          <div><span className="font-medium text-zinc-950">To:</span> {draft.to}</div>
+          <div className="mt-1"><span className="font-medium text-zinc-950">Subject:</span> {draft.subject}</div>
+          <p className="mt-3 whitespace-pre-wrap text-zinc-700">{draft.body}</p>
+        </div>
+      ) : null}
+      {!draft && !result.draft_id && !result.message ? <JsonBlock value={result} /> : null}
+    </div>
+  );
+}
+
 export default function LogsPage() {
   const [logs, setLogs] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [highlightLatest, setHighlightLatest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -45,6 +105,9 @@ export default function LogsPage() {
   }
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setHighlightLatest(new URLSearchParams(window.location.search).get("latest") === "1");
+    }
     loadLogs();
   }, []);
 
@@ -80,17 +143,14 @@ export default function LogsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {logs.map((log) => (
+              {logs.map((log, index) => (
                 <Fragment key={log.id}>
-                  <tr key={log.id} className="align-top">
+                  <tr key={log.id} className={`align-top ${highlightLatest && index === 0 ? "bg-amber-50" : ""}`}>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{new Date(log.timestamp).toLocaleString()}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900">{log.agent_id}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-700">{log.action_name || log.tool}</td>
                     <td className="whitespace-nowrap px-4 py-3"><StatusBadge status={log.status} /></td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-700">
-                      {log.policy_effect ? <div>{log.policy_effect}</div> : "-"}
-                      {log.matched_policy_id ? <div>Policy #{log.matched_policy_id}</div> : null}
-                    </td>
+                    <td className="whitespace-nowrap px-4 py-3"><PolicySummary log={log} /></td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-700">{log.risk_level || "-"}</td>
                     <td className="min-w-48 px-4 py-3 text-xs text-zinc-700">
                       {log.approved_by_user_id ? <div>Approved: {log.approved_by_user_id}</div> : null}
@@ -107,22 +167,29 @@ export default function LogsPage() {
                   {expandedId === log.id ? (
                     <tr key={`${log.id}-details`}>
                       <td className="bg-zinc-50 px-4 py-4" colSpan="9">
-                        <div className="grid gap-4 lg:grid-cols-4">
+                        <div className="grid gap-4 lg:grid-cols-2">
                           <div>
-                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Original input</div>
-                            <JsonBlock value={log.original_input || log.input} />
+                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Original AI output</div>
+                            <EmailSummary input={log.original_input || log.input} />
                           </div>
                           <div>
-                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Final input</div>
-                            <JsonBlock value={log.final_input || log.input} />
+                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Edited version executed</div>
+                            <EmailSummary input={log.final_input || log.input} />
                           </div>
                           <div>
-                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Execution result</div>
-                            <JsonBlock value={log.execution_result || log.tool_result} />
+                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Final result</div>
+                            <ResultDetails result={log.execution_result || log.tool_result} />
                           </div>
                           <div>
-                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Policy match</div>
-                            <JsonBlock value={log.policy_match} />
+                            <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">Reviewer and policy</div>
+                            <div className="rounded-md border border-zinc-200 bg-white p-3 text-sm text-zinc-800">
+                              <div><span className="font-medium text-zinc-950">Decision:</span> {log.policy_effect || log.status}</div>
+                              <div className="mt-1"><span className="font-medium text-zinc-950">Risk:</span> {log.risk_level || "-"}</div>
+                              <div className="mt-1"><span className="font-medium text-zinc-950">Approved by:</span> {log.approved_by_user_id || "-"}</div>
+                              <div className="mt-1"><span className="font-medium text-zinc-950">Rejected by:</span> {log.rejected_by_user_id || "-"}</div>
+                              {log.approved_at ? <div className="mt-1"><span className="font-medium text-zinc-950">Approved at:</span> {new Date(log.approved_at).toLocaleString()}</div> : null}
+                              {log.rejected_at ? <div className="mt-1"><span className="font-medium text-zinc-950">Rejected at:</span> {new Date(log.rejected_at).toLocaleString()}</div> : null}
+                            </div>
                           </div>
                         </div>
                       </td>
